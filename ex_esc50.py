@@ -56,7 +56,6 @@ get_validate_loader = ex.datasets.test.iter(DataLoader, static_args=dict(worker_
 
 
 @ex.config
-@ex.config
 def default_conf():
     cmd = " ".join(sys.argv)
     saque_cmd = os.environ.get("SAQUE_CMD", "").strip()
