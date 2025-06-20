@@ -73,8 +73,7 @@ def default_conf():
                                  fmax_aug_range=2000)
     }
     basedataset = DynamicIngredient("esc50.dataset.dataset")
-    trainer = dict(max_epochs=10, gpus=1, benchmark=True, num_sanity_val_steps=0,
-                   reload_dataloaders_every_epoch=True)
+    trainer = dict(max_epochs=10, gpus=1, benchmark=True, num_sanity_val_steps=0)
     wandb = dict(project="passt_esc50", log_model=True)
     lr = 0.00001
     use_mixup = True
