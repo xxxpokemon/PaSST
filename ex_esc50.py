@@ -37,7 +37,12 @@ ex = Experiment("passt_esc50")
 @ex.capture(prefix="trainer")
 def get_trainer(_config):
     logger = TensorBoardLogger("logs/", default_hp_metric=False)
+
+    # Patch logger to skip saving hparams (this avoids the OmegaConf crash)
+    logger.log_hyperparams = lambda *args, **kwargs: None
+
     return plTrainer(logger=logger, **_config)
+
 
 
 # capture the WandbLogger and prefix it with "wandb", this allows to use sacred to update WandbLogger config from the command line
