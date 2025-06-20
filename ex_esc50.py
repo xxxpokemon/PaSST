@@ -31,9 +31,16 @@ ex = Experiment("passt_esc50")
 # DDP=2 python ex_esc50.py with  trainer.precision=16  -p -m mongodb_server:27000:audioset21_balanced -c "ESC50 PaSST base"
 
 # capture the config of the trainer with the prefix "trainer", this allows to use sacred to update PL trainer config
-get_trainer = ex.command(plTrainer, prefix="trainer")
+# get_trainer = ex.command(plTrainer, prefix="trainer")
+@ex.capture(prefix="trainer")
+def get_trainer(_config):
+    return plTrainer(**_config)
+
 # capture the WandbLogger and prefix it with "wandb", this allows to use sacred to update WandbLogger config from the command line
-get_logger = ex.command(WandbLogger, prefix="wandb")
+# get_logger = ex.command(WandbLogger, prefix="wandb")
+@ex.capture(prefix="wandb")
+def get_logger(_config):
+    return WandbLogger(**_config)
 
 
 # define datasets and loaders
