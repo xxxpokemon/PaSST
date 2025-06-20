@@ -20,6 +20,8 @@ from helpers.workersinit import worker_init_fn
 from sklearn import metrics
 from pytorch_lightning import Trainer as plTrainer
 from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
+
 
 
 
