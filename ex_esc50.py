@@ -34,7 +34,9 @@ ex = Experiment("passt_esc50")
 # get_trainer = ex.command(plTrainer, prefix="trainer")
 @ex.capture(prefix="trainer")
 def get_trainer(_config):
-    return plTrainer(**_config)
+    logger = TensorBoardLogger("logs/", default_hp_metric=False)
+    return plTrainer(logger=logger, **_config)
+
 
 # capture the WandbLogger and prefix it with "wandb", this allows to use sacred to update WandbLogger config from the command line
 # get_logger = ex.command(WandbLogger, prefix="wandb")
@@ -54,15 +56,16 @@ get_validate_loader = ex.datasets.test.iter(DataLoader, static_args=dict(worker_
 
 
 @ex.config
+@ex.config
 def default_conf():
     cmd = " ".join(sys.argv)
     saque_cmd = os.environ.get("SAQUE_CMD", "").strip()
     saque_id = os.environ.get("SAQUE_ID", "").strip()
     slurm_job_id = os.environ.get("SLURM_JOB_ID", "").strip()
     if os.environ.get("SLURM_ARRAY_JOB_ID", False):
-        slurm_job_id = os.environ.get("SLURM_ARRAY_JOB_ID", "").strip() + "_" + os.environ.get("SLURM_ARRAY_TASK_ID",
-                                                                                               "").strip()
+        slurm_job_id = os.environ.get("SLURM_ARRAY_JOB_ID", "").strip() + "_" + os.environ.get("SLURM_ARRAY_TASK_ID", "").strip()
     process_id = os.getpid()
+
     models = {
         "net": DynamicIngredient("models.passt.model_ing", n_classes=50, s_patchout_t=10, s_patchout_f=3),
         "mel": DynamicIngredient("models.preprocess.model_ing",
@@ -72,9 +75,20 @@ def default_conf():
                                  htk=False, fmin=0.0, fmax=None, norm=1, fmin_aug_range=10,
                                  fmax_aug_range=2000)
     }
+
     basedataset = DynamicIngredient("esc50.dataset.dataset")
-    trainer = dict(max_epochs=10, gpus=1, benchmark=True, num_sanity_val_steps=0, num_nodes=1)
+
+    trainer = dict(
+        max_epochs=10,
+        gpus=1,
+        benchmark=True,
+        num_sanity_val_steps=0,
+        num_nodes=1
+        # add more trainer args here if needed
+    )
+
     wandb = dict(project="passt_esc50", log_model=True)
+
     lr = 0.00001
     use_mixup = True
     mixup_alpha = 0.3
