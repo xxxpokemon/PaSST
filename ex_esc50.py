@@ -168,6 +168,7 @@ class M(Ba3lModule):
     def training_step(self, batch, batch_idx):
         # REQUIRED
         x, f, y = batch
+        assert y.dtype == torch.long, f"Expected torch.long labels, got {y.dtype}"
         if self.mel:
             x = self.mel_forward(x)
 
@@ -215,6 +216,7 @@ class M(Ba3lModule):
 
     def validation_step(self, batch, batch_idx):
         x, f, y = batch
+        assert y.dtype == torch.long, f"Expected torch.long labels, got {y.dtype}"
         if self.mel:
             x = self.mel_forward(x)
 
@@ -242,9 +244,16 @@ class M(Ba3lModule):
         for net_name, net in model_name:
             avg_loss = torch.stack([x[net_name + 'val_loss'] for x in outputs]).mean()
             val_acc = sum([x['n_correct_pred'] for x in outputs]) * 1.0 / sum(x['n_pred'] for x in outputs)
+
+            print(f"[Epoch {self.current_epoch}] {net_name}Validation Accuracy: {val_acc:.4f}")
+
             logs = {net_name + 'val.loss': torch.as_tensor(avg_loss).cuda(),
                     net_name + 'acc': torch.as_tensor(val_acc).cuda(),
                     'step': torch.as_tensor(self.current_epoch).cuda()}
+            
+            # Add this for progress bar and WandB logging
+            self.log(net_name + 'val.acc', val_acc, prog_bar=True, on_epoch=True, sync_dist=True)
+            
             self.log_dict(logs, sync_dist=True)
 
     def configure_optimizers(self):
