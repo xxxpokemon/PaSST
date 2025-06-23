@@ -22,6 +22,7 @@ from pytorch_lightning import Trainer as plTrainer
 from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.loggers import TensorBoardLogger
 
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 
 
@@ -224,17 +225,27 @@ class M(Ba3lModule):
         model_name = [("", self.net)]
         if self.do_swa:
             model_name = model_name + [("swa_", self.net_swa)]
+
         for net_name, net in model_name:
             y_hat, _ = net(x)
             samples_loss = F.cross_entropy(y_hat, y, reduction="none")
             loss = samples_loss.mean()
             _, preds = torch.max(y_hat, dim=1)
+
             n_correct_pred_per_sample = (preds == y)
             n_correct_pred = n_correct_pred_per_sample.sum()
-            # self.log("validation.loss", loss, prog_bar=True, on_epoch=True, on_step=False)
-            results = {**results, net_name + "val_loss": loss,
-                       net_name + "n_correct_pred": torch.as_tensor(n_correct_pred), net_name + "n_pred":torch.as_tensor( len(y)) }
-        results = {k: v.cpu() for k, v in results.items()}
+
+            # Include predictions and targets for metric computation
+            results = {
+                **results,
+                net_name + "val_loss": loss,
+                net_name + "n_correct_pred": torch.as_tensor(n_correct_pred),
+                net_name + "n_pred": torch.as_tensor(len(y)),
+                "preds": preds.detach().cpu(),
+                "targets": y.detach().cpu()
+            }
+
+        results = {k: v.cpu() if isinstance(v, torch.Tensor) else v for k, v in results.items()}
         return results
 
     def validation_epoch_end(self, outputs):
@@ -245,16 +256,31 @@ class M(Ba3lModule):
             avg_loss = torch.stack([x[net_name + 'val_loss'] for x in outputs]).mean()
             val_acc = sum([x['n_correct_pred'] for x in outputs]) * 1.0 / sum(x['n_pred'] for x in outputs)
 
-            print(f"[Epoch {self.current_epoch}] {net_name}Validation Accuracy: {val_acc:.4f}")
+            preds = torch.cat([x['preds'] for x in outputs])
+            targets = torch.cat([x['targets'] for x in outputs])
 
-            logs = {net_name + 'val.loss': torch.as_tensor(avg_loss).cuda(),
-                    net_name + 'acc': torch.as_tensor(val_acc).cuda(),
-                    'step': torch.as_tensor(self.current_epoch).cuda()}
+            precision = precision_score(targets, preds, average='macro', zero_division=0)
+            recall = recall_score(targets, preds, average='macro', zero_division=0)
+            f1 = f1_score(targets, preds, average='macro', zero_division=0)
+
+            print(f"[Epoch {self.current_epoch}] {net_name}Val Acc: {val_acc:.4f} | Precision: {precision:.4f} | Recall: {recall:.4f} | F1: {f1:.4f}")
+
+            # Show all in progress bar
+            self.log(net_name + 'val.loss', avg_loss.cuda(), prog_bar=True, on_epoch=True, sync_dist=True)
+            self.log(net_name + 'val.acc', val_acc.cuda(), prog_bar=True, on_epoch=True, sync_dist=True)
+            self.log(net_name + 'precision', precision, prog_bar=True, on_epoch=True, sync_dist=True)
+            self.log(net_name + 'recall', recall, prog_bar=True, on_epoch=True, sync_dist=True)
+            self.log(net_name + 'f1', f1, prog_bar=True, on_epoch=True, sync_dist=True)
+            self.log('step', torch.tensor(self.current_epoch).cuda(), sync_dist=True)
             
-            # Add this for progress bar and WandB logging
-            self.log(net_name + 'val.acc', val_acc, prog_bar=True, on_epoch=True, sync_dist=True)
-            
-            self.log_dict(logs, sync_dist=True)
+            self.log_dict({
+                'val.loss': avg_loss.cuda(),
+                'val.acc': val_acc.cuda(),
+                'val.precision': precision,
+                'val.recall': recall,
+                'val.f1': f1,
+                'step': torch.tensor(self.current_epoch).cuda()
+            }, sync_dist=True)
 
     def configure_optimizers(self):
         # REQUIRED
