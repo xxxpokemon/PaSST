@@ -272,15 +272,6 @@ class M(Ba3lModule):
             self.log(net_name + 'recall', recall, prog_bar=True, on_epoch=True, sync_dist=True)
             self.log(net_name + 'f1', f1, prog_bar=True, on_epoch=True, sync_dist=True)
             self.log('step', torch.tensor(self.current_epoch).cuda(), sync_dist=True)
-            
-            self.log_dict({
-                'val.loss': avg_loss.cuda(),
-                'val.acc': val_acc.cuda(),
-                'val.precision': precision,
-                'val.recall': recall,
-                'val.f1': f1,
-                'step': torch.tensor(self.current_epoch).cuda()
-            }, sync_dist=True)
 
     def configure_optimizers(self):
         # REQUIRED
