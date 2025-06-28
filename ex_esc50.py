@@ -405,6 +405,67 @@ def evaluate_only(_run, _config, _log, _rnd, _seed):
     print("\n\n Validtaion:")
     print(res)
 
+@ex.command
+def evaluate_selected_classes(ckpt_path, csv_path, audio_dir):
+    import pandas as pd
+    import torchaudio
+    from torch.utils.data import Dataset, DataLoader
+    from sklearn.metrics import precision_score, recall_score, f1_score
+
+    TARGET_CLASSES = ["Breathing", "Coughing", "Snoring", "Drinking", "Mouse click", "Keyboard typing", "Clock tick"]
+
+    class ESC50Subset(Dataset):
+        def __init__(self, csv_path, audio_dir, target_classes):
+            self.df = pd.read_csv(csv_path)
+            self.df = self.df[self.df["category"].isin(target_classes)]
+            self.class_to_idx = {cls: idx for idx, cls in enumerate(target_classes)}
+            self.audio_dir = Path(audio_dir)
+
+        def __len__(self):
+            return len(self.df)
+
+        def __getitem__(self, idx):
+            row = self.df.iloc[idx]
+            audio_path = self.audio_dir / row["filename"]
+            waveform, sr = torchaudio.load(audio_path)
+            waveform = torchaudio.functional.resample(waveform, sr, 32000)
+            waveform = waveform.mean(0).unsqueeze(0)
+            label = self.class_to_idx[row["category"]]
+            return waveform, label
+
+    # Start Sacred run
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
+    # Init model via Sacred
+    model = M(ex)
+    state_dict = torch.load(ckpt_path, map_location=device)["state_dict"]
+    state_dict = {k.replace("model.", ""): v for k, v in state_dict.items()}
+    model.load_state_dict(state_dict, strict=False)
+    model.eval().to(device)
+
+    dataset = ESC50Subset(csv_path, audio_dir, TARGET_CLASSES)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+
+    all_preds, all_labels = [], []
+
+    with torch.no_grad():
+        for x, y in dataloader:
+            x = x.to(device)
+            if model.mel:
+                x = model.mel_forward(x)
+            logits, _ = model.forward(x)
+            preds = torch.argmax(logits, dim=1).cpu().numpy()
+            all_preds.extend(preds)
+            all_labels.extend(y.numpy())
+
+    precision = precision_score(all_labels, all_preds, average="macro")
+    recall = recall_score(all_labels, all_preds, average="macro")
+    f1 = f1_score(all_labels, all_preds, average="macro")
+
+    print(f"Precision: {precision:.4f}")
+    print(f"Recall:    {recall:.4f}")
+    print(f"F1-score:  {f1:.4f}")
 
 @ex.command
 def test_loaders():
