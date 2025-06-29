@@ -331,6 +331,10 @@ def main(_run, _config, _log, _rnd, _seed):
     trainer.save_checkpoint("epoch_9.ckpt")
     print("✅ Saved model checkpoint to epoch_9.ckpt")
 
+    out_path = "passt_s_esc50_final.pt"
+    torch.save(modul.net.state_dict(), out_path)
+    print(f"✅ Saved raw weights to {out_path}")
+
     return {"done": True}
 
 
@@ -395,88 +399,21 @@ def model_speed_test(_run, _config, _log, _rnd, _seed, speed_test_batch_size=100
     print("average speed: ", (test_length * batch_size) / (t2 - t1), " specs/second")
 
 
-# @ex.command
-# def evaluate_only(_run, _config, _log, _rnd, _seed):
-#     # force overriding the config, not logged = not recommended
-#     trainer = get_trainer()
-#     train_loader = get_train_loader()
-#     val_loader = get_validate_loader()
-
-#     modul = M(ex)
-#     modul.val_dataloader = None
-#     #trainer.val_dataloaders = None
-#     print(f"\n\nValidation len={len(val_loader)}\n")
-#     res = trainer.validate(modul, dataloaders=val_loader)
-#     print("\n\n Validtaion:")
-#     print(res)
-
 @ex.command
 def evaluate_only(_run, _config, _log, _rnd, _seed):
-    import torch
-    from sklearn.metrics import precision_score, recall_score, f1_score
-
-    # 1. Define the 7 class IDs
-    target_ids = {23, 24, 28, 29, 31, 32, 38}
-    target_id_to_index = {tid: idx for idx, tid in enumerate(sorted(target_ids))}
-
-    # 2. Load val data
+    # force overriding the config, not logged = not recommended
+    trainer = get_trainer()
+    train_loader = get_train_loader()
     val_loader = get_validate_loader()
 
-    # 3. Filter only samples with target in our 7-class subset
-    filtered = []
-    for x, f, y in val_loader.dataset:
-        if int(y) in target_ids:
-            new_label = target_id_to_index[int(y)]  # remap to [0–6]
-            filtered.append((x, new_label))
+    modul = M(ex)
+    modul.val_dataloader = None
+    #trainer.val_dataloaders = None
+    print(f"\n\nValidation len={len(val_loader)}\n")
+    res = trainer.validate(modul, dataloaders=val_loader)
+    print("\n\n Validtaion:")
+    print(res)
 
-    print(f"✅ Using {len(filtered)} samples for 7-class evaluation.")
-
-    class SubsetDataset(torch.utils.data.Dataset):
-        def __init__(self, data):
-            self.data = data
-        def __getitem__(self, idx):
-            return self.data[idx]
-        def __len__(self):
-            return len(self.data)
-
-    subset_loader = torch.utils.data.DataLoader(SubsetDataset(filtered), batch_size=8, shuffle=False)
-
-    # 4. Load model and weights from checkpoint
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"🧠 Using device: {device}")
-
-    model = M(ex)
-    model.eval().to(device)
-
-    # ✅ Manually load state dict from ckpt
-    ckpt_path = "epoch_9.ckpt"  # Adjust path as needed
-    state = torch.load(ckpt_path, map_location=device)
-    model.load_state_dict(state["state_dict"])
-    print("📦 Checkpoint loaded.")
-
-    # 5. Run inference
-    all_preds, all_labels = [], []
-
-    with torch.no_grad():
-        for x, y in subset_loader:
-            x = x.to(device)
-            y = y.to(device)
-            if model.mel:
-                x = model.mel_forward(x)
-            logits, _ = model.forward(x)
-            preds = torch.argmax(logits, dim=1)
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(y.cpu().numpy())
-
-    # 6. Metrics
-    precision = precision_score(all_labels, all_preds, average="macro", zero_division=0)
-    recall = recall_score(all_labels, all_preds, average="macro", zero_division=0)
-    f1 = f1_score(all_labels, all_preds, average="macro", zero_division=0)
-
-    print("\n🎯 7-Class Evaluation Results:")
-    print(f"Precision: {precision:.4f}")
-    print(f"Recall:    {recall:.4f}")
-    print(f"F1 Score:  {f1:.4f}")
 
 @ex.command
 def evaluate_selected_classes(ckpt_path, csv_path, audio_dir):
