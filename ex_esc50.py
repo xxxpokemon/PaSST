@@ -99,6 +99,7 @@ def default_conf():
     lr = 0.00001
     use_mixup = True
     mixup_alpha = 0.3
+    out_path = "passt_s_esc50_final.pt"
 
 
 # register extra possible configs
@@ -331,7 +332,7 @@ def main(_run, _config, _log, _rnd, _seed):
     trainer.save_checkpoint("epoch_9.ckpt")
     print("✅ Saved model checkpoint to epoch_9.ckpt")
 
-    out_path = "passt_s_esc50_final.pt"
+    out_path = _config["out_path"]
     torch.save(modul.net.state_dict(), out_path)
     print(f"✅ Saved raw weights to {out_path}")
 
