@@ -136,7 +136,7 @@ class MixupDataset(TorchDataset):
 
 class AudioSetDataset(TorchDataset):
     def __init__(self, meta_csv,  audiopath, fold, train=False, sample_rate=32000, classes_num=527,
-                 clip_length=2, augment=False):
+                 clip_length=5, augment=False):
         """
         Reads the mp3 bytes from HDF file decodes using av and returns a fixed length audio wav
         """
