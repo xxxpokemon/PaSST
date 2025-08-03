@@ -74,7 +74,7 @@ def default_conf():
     process_id = os.getpid()
 
     models = {
-        "net": DynamicIngredient("models.passt.model_ing", n_classes=50, s_patchout_t=10, s_patchout_f=3),
+        "net": DynamicIngredient("models.passt.model_ing", n_classes=59, s_patchout_t=10, s_patchout_f=3),
         "mel": DynamicIngredient("models.preprocess.model_ing",
                                  instance_cmd="AugmentMelSTFT",
                                  n_mels=128, sr=32000, win_length=800, hopsize=320, n_fft=1024, freqm=48,

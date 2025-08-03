@@ -5,9 +5,9 @@ import shutil
 train_val_dir = "esc50_extra/train_val_audio"
 test_dir = "test_audio"
 complete_audio_dir = "esc50_extra/audio_32k"
-target_classes = [23, 24, 28, 29, 31, 32, 38, 50, 51]
+target_classes = [23, 24, 28, 29, 31, 32, 38, 50, 51, 52, 53, 54, 55, 56, 57, 58]
 
-num_of_total_classes = 52
+num_of_total_classes = 59
 samples_per_class = 40
 ratio_test_total = 0.4
 test_per_class = int(samples_per_class * ratio_test_total)

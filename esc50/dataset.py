@@ -35,7 +35,7 @@ def default_config():
     base_dir = "/content/PaSST_fork/esc50_extra/"  # base directory of the dataset as downloaded
     if LMODE:
         base_dir = "/content/PaSST_fork/esc50_extra/"
-    meta_csv = base_dir + "meta/esc50.csv"
+    meta_csv = base_dir + "meta/esc59_train.csv"
     audio_path = base_dir + "audio_32k/"
     ir_path = base_dir + "irs/"
     num_of_classes = 50
