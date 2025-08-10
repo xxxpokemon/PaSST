@@ -4,9 +4,9 @@ import numpy as np
 import os
 
 audio_dir = 'test_audio'
-output_dir = 'segments_1_5_0708'
+output_dir = 'segments_1_25_06065'
 
-def extract_peak_segment(audio_path, output_path, pre_peak=0.7, post_peak=0.8):
+def extract_peak_segment(audio_path, output_path, pre_peak=0.6, post_peak=0.65):
     audio, sr = librosa.load(audio_path, sr=None)
     audio_length = len(audio)
     segment_length = int((pre_peak + post_peak) * sr)
