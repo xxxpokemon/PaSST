@@ -197,6 +197,15 @@ class M(Ba3lModule):
             loss = samples_loss.mean()
             samples_loss = samples_loss.detach()
 
+        # ✅ accuracy calculation
+        preds = torch.argmax(y_hat, dim=1)
+        acc = (preds == y).float().mean()
+
+        # log loss and accuracy per step
+        self.log("train.loss", loss, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+        self.log("train.acc", acc, on_step=False, on_epoch=True, prog_bar=True, sync_dist=True)
+
+
         results = {"loss": loss, }
 
         return results
