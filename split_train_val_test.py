@@ -2,14 +2,14 @@ import os
 import random as rd
 import shutil
 
-train_val_dir = "esc50_extra/bahrei_sounds"
-test_dir = "esc50_extra/bahrei_sounds"
-complete_audio_dir = "esc50_extra/audio_32k"
-target_classes = [23, 24, 28, 29, 31, 32, 38, 50]
+train_val_dir = "esc50_extra/bahmei_train_val"
+test_dir = "bahmei_test"
+complete_audio_dir = "esc50_extra/bahmei_sounds_copy"
+target_classes = [0, 1, 2, 3, 4, 5, 6, 7]
 
-num_of_total_classes = 59
+num_of_total_classes = 8
 samples_per_class = 40
-ratio_test_total = 0
+ratio_test_total = 0.4
 test_per_class = int(samples_per_class * ratio_test_total)
 train_val_per_class = samples_per_class - test_per_class
 
